@@ -7,19 +7,21 @@ We tell them, no problem! We can produce a list with all of the appropriate deta
 
 Using the following syntax you create our super cool and not at all needy manager a list:
 
-SELECT 
-product_name || ', ' || product_size|| ' (' || product_qty_type || ')'
-FROM product
 
 But wait! The product table has some bad data (a few NULL values). 
 Find the NULLs and then using COALESCE, replace the NULL with a 
 blank for the first problem, and 'unit' for the second problem. 
 
+
 HINT: keep the syntax the same, but edited the correct components with the string. 
 The `||` values concatenate the columns into strings. 
 Edit the appropriate columns -- you're making two edits -- and the NULL rows will be fixed. 
 All the other rows will remain the same.) */
-
+SELECT 
+product_name || ', ' || product_size|| ' (' || product_qty_type || ')'
+,IFNULL(product_size, ' ')
+,IFNULL(product_qty_type, 'unit')
+FROM product
 
 
 --Windowed Functions
@@ -32,16 +34,41 @@ each new market date for each customer, or select only the unique market dates p
 (without purchase details) and number those visits. 
 HINT: One of these approaches uses ROW_NUMBER() and one uses DENSE_RANK(). */
 
+--SELECT * from customer_purchases
+--ORDER by customer_id
+
+SELECT market_date, transaction_time, customer_id,
+dense_rank()OVER(PARTITION by	customer_id order by market_date) as visit_number
+FROM customer_purchases
+
 
 
 /* 2. Reverse the numbering of the query from a part so each customer’s most recent visit is labeled 1, 
 then write another query that uses this one as a subquery (or temp table) and filters the results to 
 only the customer’s most recent visit. */
 
+DROP TABLE IF EXISTS temp.most_recent_visit;
+CREATE TABLE temp.most_recent_visit AS
+
+SELECT *,
+dense_rank()OVER(PARTITION by	customer_id order by market_date DESC) as visit_number
+FROM customer_purchases;
+
+SELECT DISTINCT customer_id, market_date as most_recent_visit
+FROM temp.most_recent_visit
+WHERE visit_number=1
+
 
 
 /* 3. Using a COUNT() window function, include a value along with each row of the 
 customer_purchases table that indicates how many different times that customer has purchased that product_id. */
+
+
+SELECT customer_id,product_id,
+count(market_date) as times_purchased
+from customer_purchases
+GROUP by product_id, customer_id
+ORDER by customer_id
 
 
 
@@ -58,8 +85,11 @@ Remove any trailing or leading whitespaces. Don't just use a case statement for 
 Hint: you might need to use INSTR(product_name,'-') to find the hyphens. INSTR will help split the column. */
 
 
+-- ********We didn't cover this, but here's the position of the hyphen :) That's all I had time to google*********
 
-/* 2. Filter the query to show any product_size value that contain a number with REGEXP. */
+SELECT product_name,
+INSTR(product_name,'-') as hyphen_pos
+from product
 
 
 
@@ -73,7 +103,15 @@ HINT: There are a possibly a few ways to do this query, but if you're struggling
 3) Query the second temp table twice, once for the best day, once for the worst day, 
 with a UNION binding them. */
 
+/*
+SELECT *, (quantity*cost_to_customer_per_qty) as row_total 
+from customer_purchases
+GROUP by market_date
 
+SELECT market_date, transaction_time, customer_id,
+dense_rank()OVER(PARTITION by	customer_id order by market_date) as visit_number
+FROM customer_purchases
+*/
 
 
 /* SECTION 3 */
@@ -88,6 +126,22 @@ Remember, CROSS JOIN will explode your table rows, so CROSS JOIN should likely b
 Think a bit about the row counts: how many distinct vendors, product names are there (x)?
 How many customers are there (y). 
 Before your final group by you should have the product of those two queries (x*y).  */
+
+--select * from vendor
+--SELECT * FROM vendor_inventory
+
+
+SELECT distinct vendor_id, product_id, original_price, (original_price*5) as cost_for_5
+from vendor_inventory
+group by vendor_id, product_id
+
+
+--SELECT *
+--from vendor_inventory
+--where vendor_id=4
+
+--SELECT distinct count (customer_id)
+--from customer
 
 
 
